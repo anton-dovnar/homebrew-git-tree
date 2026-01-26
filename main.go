@@ -8,6 +8,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"path/filepath"
 
 	"github.com/anton-dovnar/git-tree/structs"
 	"github.com/anton-dovnar/git-tree/view"
@@ -617,11 +618,40 @@ func saveLocationsToFile(locations map[plumbing.Hash][2]int, filename string) er
 	return os.WriteFile(filename, jsonData, 0644)
 }
 
+// getGitHubSlug attempts to extract GitHub repository slug from remotes
+func getGitHubSlug(repo *git.Repository) string {
+	remotes, err := repo.Remotes()
+	if err != nil {
+		return ""
+	}
+
+	for _, remote := range remotes {
+		for _, url := range remote.Config().URLs {
+			if strings.Contains(url, "github.com") {
+				// Extract slug from URL like https://github.com/owner/repo.git
+				// or git@github.com:owner/repo.git
+				url = strings.TrimSuffix(url, ".git")
+				if idx := strings.Index(url, "github.com/"); idx >= 0 {
+					slug := url[idx+len("github.com/"):]
+					// Handle SSH format git@github.com:owner/repo
+					if strings.HasPrefix(slug, ":") {
+						slug = slug[1:]
+					}
+					return slug
+				}
+			}
+		}
+	}
+	return ""
+}
+
 func main() {
 	repoPath := flag.String("path", ".", "Path to Git repository (any subdirectory is OK)")
 	all := flag.Bool("all", false, "Include remote refs")
 	locationsOut := flag.String("locations", "locations.json", "Write computed lattice positions JSON to this path")
 	noSVG := flag.Bool("no-svg", false, "Do not emit SVG to stdout")
+	htmlOut := flag.String("html", "", "Generate HTML output file (instead of SVG to stdout)")
+	htmlOnly := flag.Bool("html-only", false, "Skip SVG stdout output when generating HTML")
 	flag.Parse()
 
 	repo, err := git.PlainOpenWithOptions(*repoPath, &git.PlainOpenOptions{DetectDotGit: true})
@@ -643,7 +673,50 @@ func main() {
 		log.Printf("Could not save locations to %s: %v", *locationsOut, err)
 	}
 
-	if !*noSVG {
+	// Generate HTML if requested
+	if *htmlOut != "" {
+		// Get GitHub slug for issue linking
+		ghSlug := getGitHubSlug(repo)
+
+		// Generate commit data
+		commitData := view.GenerateCommitData(commits, ghSlug)
+
+		// Generate SVG as string
+		svgString, err := view.GenerateSVGString(commits, positions, heads, tags, children)
+		if err != nil {
+			log.Fatalf("Failed to generate SVG: %v", err)
+		}
+
+		// Determine title (use repository directory name)
+		title := *repoPath
+		if title == "." {
+			wd, err := os.Getwd()
+			if err == nil {
+				title = wd
+			}
+		}
+		title = strings.TrimSuffix(title, "/")
+		if idx := strings.LastIndex(title, "/"); idx >= 0 {
+			title = title[idx+1:]
+		}
+
+		// Write HTML file
+		htmlFile, err := os.Create(*htmlOut)
+		if err != nil {
+			log.Fatalf("Failed to create HTML file %s: %v", *htmlOut, err)
+		}
+		defer htmlFile.Close()
+
+		if err := view.WriteHTML(htmlFile, svgString, commitData, title); err != nil {
+			log.Fatalf("Failed to write HTML: %v", err)
+		}
+
+		absPath, _ := filepath.Abs(*htmlOut)
+		log.Printf("✨ HTML generated: file://%s", absPath)
+	}
+
+	// Output SVG to stdout if not in HTML-only mode
+	if !*noSVG && (*htmlOut == "" || !*htmlOnly) {
 		canvas := svg.New(os.Stdout)
 		view.DrawRailway(canvas, commits, positions, heads, tags, children)
 	}
