@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"sort"
@@ -535,12 +534,6 @@ func arrangeCommits(
 	return locations
 }
 
-func printLocations(locations map[plumbing.Hash][2]int) {
-	for hash, pos := range locations {
-		fmt.Printf("'%s': [%d,%d]\n", hash.String(), pos[0], pos[1])
-	}
-}
-
 func saveLocationsToFile(locations map[plumbing.Hash][2]int, filename string) error {
 	stringMap := make(map[string][2]int)
 	for hash, pos := range locations {
@@ -645,11 +638,4 @@ func main() {
 		canvas := svg.New(os.Stdout)
 		view.DrawRailway(canvas, commits, positions, heads, tags, children)
 	}
-}
-
-func firstLine(s string) string {
-	if i := strings.IndexByte(s, '\n'); i >= 0 {
-		return s[:i]
-	}
-	return s
 }

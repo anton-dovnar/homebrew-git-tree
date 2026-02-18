@@ -21,7 +21,6 @@ const (
 	paddingY  = 8
 	stopR     = 5
 	railW     = 6
-	refAngle  = 0
 	maxColors = 32
 )
 
