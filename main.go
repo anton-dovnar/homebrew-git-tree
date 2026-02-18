@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"log"
 	"os"
@@ -14,8 +13,6 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-
-	svg "github.com/ajstarks/svgo"
 
 	mapset "github.com/deckarep/golang-set/v2"
 )
@@ -534,19 +531,6 @@ func arrangeCommits(
 	return locations
 }
 
-func saveLocationsToFile(locations map[plumbing.Hash][2]int, filename string) error {
-	stringMap := make(map[string][2]int)
-	for hash, pos := range locations {
-		stringMap[hash.String()] = pos
-	}
-
-	jsonData, err := json.MarshalIndent(stringMap, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(filename, jsonData, 0644)
-}
 
 func getGitHubSlug(repo *git.Repository) string {
 	remotes, err := repo.Remotes()
@@ -574,10 +558,7 @@ func getGitHubSlug(repo *git.Repository) string {
 func main() {
 	repoPath := flag.String("path", ".", "Path to Git repository (any subdirectory is OK)")
 	all := flag.Bool("all", false, "Include remote refs")
-	locationsOut := flag.String("locations", "locations.json", "Write computed lattice positions JSON to this path")
-	noSVG := flag.Bool("no-svg", false, "Do not emit SVG to stdout")
-	htmlOut := flag.String("html", "", "Generate HTML output file (instead of SVG to stdout)")
-	htmlOnly := flag.Bool("html-only", false, "Skip SVG stdout output when generating HTML")
+	htmlOut := flag.String("html", "tree.html", "Generate HTML output file (instead of SVG to stdout)")
 	flag.Parse()
 
 	repo, err := git.PlainOpenWithOptions(*repoPath, &git.PlainOpenOptions{DetectDotGit: true})
@@ -595,9 +576,6 @@ func main() {
 
 	positions := arrangeCommits(commits, heads, children)
 	log.Printf("Arranged %d commits", len(positions))
-	if err := saveLocationsToFile(positions, *locationsOut); err != nil {
-		log.Printf("Could not save locations to %s: %v", *locationsOut, err)
-	}
 
 	if *htmlOut != "" {
 		ghSlug := getGitHubSlug(repo)
@@ -632,10 +610,5 @@ func main() {
 
 		absPath, _ := filepath.Abs(*htmlOut)
 		log.Printf("✨ HTML generated: file://%s", absPath)
-	}
-
-	if !*noSVG && (*htmlOut == "" || !*htmlOnly) {
-		canvas := svg.New(os.Stdout)
-		view.DrawRailway(canvas, commits, positions, heads, tags, children)
 	}
 }
