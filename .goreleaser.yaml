@@ -82,10 +82,11 @@ release:
 
 brews:
   - name: git-tree
-    tap:
+    repository:
       owner: anton-dovnar
       name: homebrew-git-tree
-    folder: Formula
+      branch: main
+    directory: Formula
     homepage: "https://github.com/anton-dovnar/git-tree"
     description: "Visualize a git repository’s commit history as an interactive graph."
     license: "MIT"
