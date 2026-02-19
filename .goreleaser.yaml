@@ -82,6 +82,8 @@ release:
 
 brews:
   - name: git-tree
+    ids:
+      - homebrew
     repository:
       owner: anton-dovnar
       name: homebrew-git-tree
