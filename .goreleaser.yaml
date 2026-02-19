@@ -80,22 +80,17 @@ release:
     ---
     Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
 
-homebrew_casks:
+brews:
   - name: git-tree
-    ids:
-      - homebrew
-    binaries:
-      - git-tree
-    homepage: "https://github.com/anton-dovnar/git-tree"
-    description: "Visualize a git repository’s commit history as an interactive graph."
-    url:
-      verified: "github.com/anton-dovnar/git-tree"
-    repository:
+    tap:
       owner: anton-dovnar
       name: homebrew-git-tree
-    hooks:
-      post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/git-tree"]
-          end
+    folder: Formula
+    homepage: "https://github.com/anton-dovnar/git-tree"
+    description: "Visualize a git repository’s commit history as an interactive graph."
+    license: "MIT"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    install: |
+      bin.install "git-tree"
