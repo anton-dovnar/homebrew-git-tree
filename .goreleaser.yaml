@@ -87,7 +87,7 @@ brews:
     repository:
       owner: anton-dovnar
       name: homebrew-git-tree
-      branch: main
+      branch: master
     directory: Formula
     homepage: "https://github.com/anton-dovnar/git-tree"
     description: "Visualize a git repository’s commit history as an interactive graph."
